@@ -28,6 +28,7 @@ import (
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/grpclog"
 	"google.golang.org/grpc/metadata"
+	"google.golang.org/grpc/peer"
 )
 
 var (
@@ -213,6 +214,14 @@ func buildGrpcProxyServer(backendConn *grpc.ClientConn, logger *logrus.Entry) *g
 		md, _ := metadata.FromIncomingContext(ctx)
 		outCtx, _ := context.WithCancel(ctx)
 		mdCopy := md.Copy()
+
+		client_source_ip := "127.0.0.1" //Default fall back option
+		p, ok := peer.FromContext(ctx)
+		if ok {
+			client_source_ip = p.Addr.String()
+		}
+		mdCopy["x-client-ip"] = []string{client_source_ip}
+
 		delete(mdCopy, "user-agent")
 		// If this header is present in the request from the web client,
 		// the actual connection to the backend will not be established.
